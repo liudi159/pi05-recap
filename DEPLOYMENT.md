@@ -3,8 +3,17 @@
 ## 结果
 
 代码和独立 Python 环境已部署至服务器 `/home/andy/projects/pi05-recap`。
-本次遵照用户要求只部署，不运行训练、模型推理、策略服务、仿真或机器人任务。
-未下载 π0.5 权重、未下载实验数据、未注册常驻服务或定时任务。
+官方 π0.5 权重统一存放于 `/home/andy/models/openpi`，原项目与 Tezoi 副本共用。
+权重下载及完整性校验由 `deploy/download_weights.py` 完成；全部文件校验通过后生成
+`/home/andy/models/openpi/download-verification.json`。下载不需要初始化 GPU。
+
+| 权重 | 本地目录 | 大小（十进制） | 用途 |
+|---|---|---|---|
+| 官方 π0.5 base | `/home/andy/models/openpi/pi05_base` | 12.442 GB | RECAP 策略训练初始化 |
+| 官方 π0.5 LIBERO | `/home/andy/models/openpi/pi05_libero` | 12.439 GB | 冻结特征提取，包含归一化 assets |
+
+来源为官方 `gs://openpi-assets/checkpoints/`；按对象 generation 固定下载版本，逐文件核对大小和 CRC32C。
+这两份是官方 π0.5 权重，尚无本项目训练生成的 RECAP 权重。实验数据另行准备。
 
 ## 资源检查
 
@@ -46,7 +55,7 @@ PyTorch 官方 wheel 使用分段下载；安装前的完整 SHA-256 与锁文�
 
 ## 尚未验证
 
-依照“只部署”要求，没有执行新实现的回归测试、完整模块导入、JAX GPU 计算、权重加载、
+尚未执行新实现的回归测试、完整模块导入、JAX GPU 计算、权重加载、
 价值模型训练、LoRA 反向传播、策略推理或 LIBERO 评估。
 包依赖约束兼容不等于 GPU 运行兼容，也不代表复现论文效果。
 新增 `tests/test_recap_adaptation.py` 留待后续运行；原参考代码修改前通过的 14 项离线工具测试不计入本实现验收。

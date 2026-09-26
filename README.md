@@ -1,7 +1,6 @@
 # 基于 π0.5 的 RECAP 复现部署
 
 这是以 openpi 的 π0.5 为基础、参考 π*0.6 / RECAP 论文和 hzm8341/pi0.6 的研究实现。
-**本次只部署，不启动训练、推理服务、仿真或机器人，也不下载模型权重和数据集。**
 安装状态见 [DEPLOYMENT.md](DEPLOYMENT.md)，代码来源见 [PROVENANCE.md](PROVENANCE.md)。
 
 ## 复现范围
@@ -67,20 +66,24 @@ source deploy/env.sh
 
 ## 以后运行时的步骤
 
-1. 按需要下载官方 `gs://openpi-assets/checkpoints/pi05_base`（策略初始化）和
+1. 准备官方 `gs://openpi-assets/checkpoints/pi05_base`（策略初始化）和
    `gs://openpi-assets/checkpoints/pi05_libero`（冻结视觉/语言特征提取，包含归一化 assets）。
-   本次未下载。
+   安装环境后，可用 `.venv/bin/python deploy/download_weights.py --root /home/andy/models/openpi` 下载并校验文件。
+   下载器支持断点续传，仅获取权重和随附的归一化元数据；不会加载模型。
+   服务器统一存放于 `/home/andy/models/openpi/{pi05_base,pi05_libero}`，Tezoi 副本也可直接使用这些路径。
+   完整性记录为该目录中的 `download-verification.json`，全部文件通过校验后才会生成。
 2. 为 train/eval JSON 分别提取冻结特征：
 
 ```bash
 source deploy/env.sh
 python scripts/extract_recap_features.py \
   --episodes data/train.json --image-root data/images \
-  --checkpoint /path/to/pi05_libero --output data/train_features.json
+  --checkpoint /home/andy/models/openpi/pi05_libero --output data/train_features.json
 # 对独立 eval.json 同样执行，输出 eval_features.json。
 ```
 
 3. 复制并修改 `deploy/offline_manifest.example.json`。设置数据路径、真实 repo ID、episode_map 和固定 base params。
+   在这台服务器上，将 `base_params` 设为 `/home/andy/models/openpi/pi05_base/params` 即可使用本地权重。
    后续迭代的训练 JSON/LeRobot 数据必须累积已有经验；评估集合固定不变。
 
 ```bash
