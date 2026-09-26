@@ -22,6 +22,7 @@ import openpi.policies.droid_policy as droid_policy
 import openpi.policies.g1_policy as g1_policy
 import openpi.policies.libero_policy as libero_policy
 import openpi.policies.scene1_policy as scene1_policy
+import openpi.policies.stiff_policy as stiff_policy
 import openpi.shared.download as _download
 import openpi.shared.normalize as _normalize
 import openpi.training.droid_rlds_dataset as droid_rlds_dataset
@@ -67,6 +68,9 @@ class AssetsConfig:
 class DataConfig:
     # LeRobot repo id. If None, fake data will be created.
     repo_id: str | None = None
+    # Explicit persisted LeRobot directory; avoids downloading a local dataset from the Hub.
+    local_root: str | None = None
+    stiff_contract: bool = False
     # Directory within the assets directory containing the data assets.
     asset_id: str | None = None
     # Contains precomputed normalization stats. If None, normalization will not be performed.
@@ -204,6 +208,7 @@ class DataConfigFactory(abc.ABC):
     base_config: tyro.conf.Suppress[DataConfig | None] = None
     # Optional RECAP sidecar fields path, forwarded into DataConfig.
     recap_fields_path: str | None = None
+    local_root: str | None = None
 
     @abc.abstractmethod
     def create(self, assets_dirs: pathlib.Path, model_config: _model.BaseModelConfig) -> DataConfig:
@@ -219,6 +224,7 @@ class DataConfigFactory(abc.ABC):
             norm_stats=self._load_norm_stats(epath.Path(self.assets.assets_dir or assets_dirs), asset_id),
             use_quantile_norm=model_config.model_type != ModelType.PI0,
             recap_fields_path=self.recap_fields_path,
+            local_root=self.local_root,
         )
 
     def _load_norm_stats(self, assets_dir: epath.Path, asset_id: str | None) -> dict[str, _transforms.NormStats] | None:
@@ -244,9 +250,15 @@ class FakeDataConfig(DataConfigFactory):
 
 
 @dataclasses.dataclass(frozen=True)
+class IdentityTransformFactory(GroupFactory):
+    def __call__(self, model_config: _model.BaseModelConfig) -> _transforms.Group:
+        return _transforms.Group()
+
+
+@dataclasses.dataclass(frozen=True)
 class SimpleDataConfig(DataConfigFactory):
     # Factory for the data transforms.
-    data_transforms: tyro.conf.Suppress[GroupFactory] = dataclasses.field(default_factory=GroupFactory)
+    data_transforms: tyro.conf.Suppress[GroupFactory] = dataclasses.field(default_factory=IdentityTransformFactory)
     # Factory for the model transforms.
     model_transforms: tyro.conf.Suppress[GroupFactory] = dataclasses.field(default_factory=ModelTransformFactory)
 
@@ -391,6 +403,23 @@ class LeRobotLiberoDataConfig(DataConfigFactory):
             repack_transforms=repack_transform,
             data_transforms=data_transforms,
             model_transforms=model_transforms,
+        )
+
+
+@dataclasses.dataclass(frozen=True)
+class LeRobotStiffDataConfig(DataConfigFactory):
+    """Single RM65 + Xense + external/wrist RGB, never LIBERO Cartesian actions."""
+
+    @override
+    def create(self, assets_dirs: pathlib.Path, model_config: _model.BaseModelConfig) -> DataConfig:
+        return dataclasses.replace(
+            self.create_base_config(assets_dirs, model_config),
+            stiff_contract=True,
+            repack_transforms=stiff_policy.repack_transform(),
+            data_transforms=stiff_policy.data_transforms(),
+            model_transforms=ReCAPModelTransformFactory()(model_config),
+            action_sequence_keys=("action",),
+            prompt_from_task=True,
         )
 
 
@@ -1219,6 +1248,23 @@ _CONFIGS = [
             base_config=DataConfig(prompt_from_task=True)),
         weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi05_base/params"),
         batch_size=1, num_train_steps=30000, num_workers=2, wandb_enabled=False,
+    ),
+    TrainConfig(
+        name="pi05_stiff_rm65",
+        model=pi0_config.Pi0Config(pi05=True),
+        data=LeRobotStiffDataConfig(repo_id="local/stiff_rm65"),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi05_base/params"),
+        batch_size=1, num_workers=2, wandb_enabled=False,
+    ),
+    TrainConfig(
+        name="pi05_stiff_rm65_recap_lora",
+        model=pi0_config.Pi0Config(pi05=True, paligemma_variant="gemma_2b_lora",
+            action_expert_variant="gemma_300m_lora", recap=pi0_config.ReCAPConfig(enabled=True)),
+        data=LeRobotStiffDataConfig(repo_id="local/stiff_rm65"),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi05_base/params"),
+        freeze_filter=pi0_config.Pi0Config(pi05=True, paligemma_variant="gemma_2b_lora",
+            action_expert_variant="gemma_300m_lora").get_freeze_filter(),
+        batch_size=1, num_train_steps=30000, num_workers=2, ema_decay=None, wandb_enabled=False,
     ),
     # RoboArena & PolaRiS configs.
     *roboarena_config.get_roboarena_configs(),

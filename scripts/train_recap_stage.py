@@ -8,6 +8,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default="pi05_libero_recap_lora")
     parser.add_argument("--repo-id", required=True)
+    parser.add_argument("--dataset-root")
     parser.add_argument("--fields", required=True)
     parser.add_argument("--base-params", required=True)
     parser.add_argument("--exp-name", required=True)
@@ -19,7 +20,8 @@ def main():
     cfg = config.get_config(args.config)
     cfg = dataclasses.replace(
         cfg,
-        data=dataclasses.replace(cfg.data, repo_id=args.repo_id, recap_fields_path=args.fields),
+        data=dataclasses.replace(cfg.data, repo_id=args.repo_id, recap_fields_path=args.fields,
+                                 local_root=args.dataset_root or cfg.data.local_root),
         weight_loader=weight_loaders.CheckpointWeightLoader(args.base_params),
         exp_name=args.exp_name,
         num_train_steps=args.steps,

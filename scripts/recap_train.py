@@ -72,6 +72,9 @@ def commands(manifest, output):
                 str(manifest.get("policy_steps", 30000)),
             ]
         )
+        if iteration.get("dataset_root"):
+            for command in result[-3:]:
+                command.extend(["--dataset-root", iteration["dataset_root"]])
     return result
 
 
@@ -93,6 +96,11 @@ def main():
     previous = set()
     heldout = None
     for iteration in manifest["iterations"]:
+        if manifest.get("config", "").startswith("pi05_stiff_"):
+            from openpi.training.stiff_data import validate_dataset_contract
+            if not iteration.get("dataset_root"):
+                raise ValueError("Stiff iterations need an explicit dataset_root")
+            validate_dataset_contract(iteration["dataset_root"], require_training=True)
         train = load_recap_episodes(iteration["episodes"])
         evaluation = load_recap_episodes(iteration["eval_episodes"])
         validate_episodes(train)

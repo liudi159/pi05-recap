@@ -185,7 +185,19 @@ def create_torch_dataset(
     if repo_id == "fake":
         return FakeDataset(model_config, num_samples=1024)
 
-    dataset_meta = lerobot_dataset.LeRobotDatasetMetadata(repo_id)
+    kwargs = {}
+    if data_config.local_root is not None:
+        from pathlib import Path
+        root = Path(data_config.local_root).resolve()
+        if not (root / "meta/info.json").is_file():
+            raise FileNotFoundError(f"Missing local LeRobot metadata: {root}")
+        kwargs["root"] = root
+    if data_config.stiff_contract:
+        from openpi.training.stiff_data import validate_dataset_contract
+        if "root" not in kwargs:
+            raise ValueError("Stiff requires an explicit local_root and provenance")
+        validate_dataset_contract(kwargs["root"], require_training=True)
+    dataset_meta = lerobot_dataset.LeRobotDatasetMetadata(repo_id, **kwargs)
     dataset = lerobot_dataset.LeRobotDataset(
         data_config.repo_id,
         delta_timestamps={
@@ -193,6 +205,7 @@ def create_torch_dataset(
         },
         video_backend="pyav",
         tolerance_s=data_config.lerobot_video_tolerance_s,
+        **kwargs,
     )
 
     if data_config.prompt_from_task:

@@ -27,12 +27,18 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--image-root", type=Path, required=True)
     parser.add_argument("--checkpoint", required=True, help="Frozen pi05_libero checkpoint, including assets.")
+    parser.add_argument("--config", default="pi05_libero", help="Use pi05_stiff_rm65 for RM65/Xense inputs.")
+    parser.add_argument("--norm-stats", type=Path, help="Directory containing this robot's train-only norm_stats.json")
     args = parser.parse_args()
     if args.output.exists():
         raise FileExistsError(args.output)
     episodes = load_recap_episodes(args.episodes)
     validate_episodes(episodes)
-    policy = policy_config.create_trained_policy(config.get_config("pi05_libero"), args.checkpoint)
+    from openpi.shared import normalize
+    stats = normalize.load(args.norm_stats) if args.norm_stats is not None else None
+    if args.config.startswith("pi05_stiff_") and stats is None:
+        raise ValueError("Stiff requires its own train-only normalization statistics; LIBERO stats are incompatible")
+    policy = policy_config.create_trained_policy(config.get_config(args.config), args.checkpoint, norm_stats=stats)
     if policy._is_pytorch_model:
         raise ValueError("Feature extraction requires the JAX/Orbax pi05_libero checkpoint.")
 

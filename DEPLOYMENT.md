@@ -60,10 +60,19 @@ PyTorch 官方 wheel 使用分段下载；安装前的完整 SHA-256 与锁文�
 
 ## 尚未验证
 
-尚未执行新实现的回归测试、完整模块导入、JAX GPU 计算、权重加载、
+尚未执行 RECAP 训练相关回归、完整模型运行、JAX GPU 计算、权重加载、
 价值模型训练、LoRA 反向传播、策略推理或 LIBERO 评估。
 包依赖约束兼容不等于 GPU 运行兼容，也不代表复现论文效果。
 新增 `tests/test_recap_adaptation.py` 留待后续运行；原参考代码修改前通过的 14 项离线工具测试不计入本实现验收。
+
+## Stiff 单臂双相机接入
+
+已新增 `pi05_stiff_rm65` / `pi05_stiff_rm65_recap_lora` 配置与显式本地 LeRobot 数据根目录支持。
+当前 RM65/Xense 装配的 3 帧诊断数据通过逐帧 RGB、时间戳、相机标定、关节增量还原、
+夹指量保留及 50 步动作窗口尾部补齐检查；5 项 CPU 数据适配回归通过。
+配置导入时发现并修复 `SimpleDataConfig` 默认工厂直接实例化 Protocol 的旧问题，两个新配置可正常导入。
+诊断数据保持 `training_ready=false`，未生成正式训练统计。完整绑定和证据保存在服务器
+`.cache/stiff_rm65_alignment/`，使用说明见 [docs/STIFF_RM65.md](docs/STIFF_RM65.md)。
 
 ## 后续入口
 

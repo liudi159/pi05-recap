@@ -34,11 +34,14 @@ def main():
     parser.add_argument("--labels", type=Path, required=True)
     parser.add_argument("--episode-map", type=Path, required=True, help='JSON: {"ep001": 0, ...}')
     parser.add_argument("--repo-id", required=True)
+    parser.add_argument("--dataset-root", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     from lerobot.common.datasets.lerobot_dataset import LeRobotDataset
 
-    dataset = LeRobotDataset(args.repo_id, video_backend="pyav")
+    if args.dataset_root is not None and not (args.dataset_root / "meta/info.json").is_file():
+        raise FileNotFoundError(args.dataset_root)
+    dataset = LeRobotDataset(args.repo_id, root=args.dataset_root, video_backend="pyav")
     records = [json.loads(line) for line in args.labels.read_text().splitlines() if line.strip()]
     fields = align(
         records,

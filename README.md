@@ -3,6 +3,8 @@
 这是以 openpi 的 π0.5 为基础、参考 π*0.6 / RECAP 论文和 hzm8341/pi0.6 的研究实现。
 安装状态见 [DEPLOYMENT.md](DEPLOYMENT.md)，代码来源见 [PROVENANCE.md](PROVENANCE.md)。
 
+单台 RM65 + Xense 夹爪 + 腕部/外部双相机的数据接入见 [Stiff 适配说明](docs/STIFF_RM65.md)。
+
 ## 复现范围
 
 | 部分 | 本仓库 |
@@ -116,7 +118,8 @@ python scripts/serve_recap_policy.py \
 当前 LoRA 配置默认单 GPU、batch size 1，需要后续运行前检查空闲显存。
 
 部署阶段只做静态语法、依赖一致性、源码与版本检查。
-`tests/` 提供新增回归检查，未在本次“只部署”阶段执行；GPU/权重加载/训练/仿真验证均待后续进行。
+Stiff 接入已通过现有 3 帧记录的离线对齐和 5 项数据适配回归检查；RECAP 训练相关回归及
+GPU/权重加载/训练/仿真验证仍待后续进行。
 原参考仓库在修改前曾通过 14 项 NumPy 离线工具测试，不代表本仓库的新实现或 GPU 路径已通过测试。
 
 ## 参考
