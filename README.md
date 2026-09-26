@@ -69,9 +69,10 @@ source deploy/env.sh
 1. 准备官方 `gs://openpi-assets/checkpoints/pi05_base`（策略初始化）和
    `gs://openpi-assets/checkpoints/pi05_libero`（冻结视觉/语言特征提取，包含归一化 assets）。
    安装环境后，可用 `.venv/bin/python deploy/download_weights.py --root /home/andy/models/openpi` 下载并校验文件。
-   下载器支持断点续传，仅获取权重和随附的归一化元数据；不会加载模型。
+   下载器支持分段下载和断点续传，仅获取权重和随附的归一化元数据；不会加载模型。
    服务器统一存放于 `/home/andy/models/openpi/{pi05_base,pi05_libero}`，Tezoi 副本也可直接使用这些路径。
    完整性记录为该目录中的 `download-verification.json`，全部文件通过校验后才会生成。
+   本服务器已完成两份权重的下载：45 个文件，共 24.88 GB，均已通过官方大小和 CRC32C 校验。
 2. 为 train/eval JSON 分别提取冻结特征：
 
 ```bash
