@@ -1,0 +1,16 @@
+{
+  "experiment": "libero_recap_v1",
+  "config": "pi05_libero_recap_lora",
+  "base_params": "gs://openpi-assets/checkpoints/pi05_base/params",
+  "value_steps": 500,
+  "policy_steps": 30000,
+  "state_only": false,
+  "iterations": [
+    {
+      "episodes": "data/train_features.json",
+      "eval_episodes": "data/eval_features.json",
+      "repo_id": "your_account/libero_train_only",
+      "episode_map": "data/episode_map.json"
+    }
+  ]
+}
